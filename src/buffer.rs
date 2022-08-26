@@ -30,4 +30,16 @@ impl Buffer {
     pub fn rows(&self) -> &Vec<String> {
         return &self.rows;
     }
+
+    pub fn write(&mut self, char: char) {
+        match char {
+            '\n' => {
+                self.rows.push(String::new());
+                self.row += 1;
+            },
+            _ => {
+                self.rows[self.row as usize].push(char);
+            }
+        }
+    }
 }

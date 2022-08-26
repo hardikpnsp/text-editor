@@ -1,10 +1,11 @@
 mod buffer;
 
-use std::io::{stdin, stdout, Write};
+use std::io::{stdin, stdout, Stdout, Write};
 use std::env;
+use termion::cursor::Left;
 use termion::event::{Event, Key};
 use termion::input::TermRead;
-use termion::raw::IntoRawMode;
+use termion::raw::{IntoRawMode, RawTerminal};
 
 use buffer::Buffer;
 
@@ -15,12 +16,7 @@ fn main() {
     let mut stdout = stdout().into_raw_mode().unwrap();
     let mut buffer: Buffer = Buffer::new(filename);
 
-    write!(stdout, "{}", termion::clear::All).unwrap();
-    for line in buffer.rows() {
-        write!(stdout, "{}\r\n", line).unwrap();
-    }
-    write!(stdout, "{}", termion::cursor::Show).unwrap();
-    stdout.flush().unwrap();
+    render(&mut stdout, &mut buffer);
 
     let stdin = stdin();
 
@@ -28,11 +24,20 @@ fn main() {
         let evt = c.unwrap();
         match evt {
             Event::Key(Key::Esc) => break,
+            Event::Key(Key::Char(char)) => {
+                buffer.write(char);
+            },
             _ => {}
         }
-        for line in buffer.rows() {
-            write!(stdout, "{}\r\n", line).unwrap();
-        }
-        stdout.flush().unwrap();
+
+        render(&mut stdout, &mut buffer);
     }
+}
+
+fn render(stdout: &mut RawTerminal<Stdout>, buffer: &mut Buffer) {
+    write!(stdout, "{}{}", termion::clear::All, termion::cursor::Goto(1, 1)).unwrap();
+    for line in buffer.rows() {
+        write!(stdout, "{}\r\n", line).unwrap();
+    }
+    stdout.flush().unwrap();
 }
