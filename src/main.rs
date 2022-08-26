@@ -29,7 +29,10 @@ fn main() {
             },
             Event::Key(Key::Ctrl('s')) => {
                 buffer.save(filename);
-            }
+            },
+            Event::Key(Key::Backspace) => {
+                buffer.delete();
+            },
             _ => {}
         }
 

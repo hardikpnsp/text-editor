@@ -43,13 +43,17 @@ impl Buffer {
         }
     }
 
+    pub(crate) fn delete(&mut self) {
+        self.rows[self.row as usize].pop();
+    }
+
     pub fn save(&self, filename: &String) -> std::io::Result<()> {
         let file = File::create(filename).expect("could not open file in write only mode");
         let mut file = LineWriter::new(file);
 
         for row in &self.rows {
             file.write_all(row.as_ref())?;
-            file.write_all(b"\n")?;
+            file.write_all(b"\r\n")?;
         }
 
         file.flush()?;
