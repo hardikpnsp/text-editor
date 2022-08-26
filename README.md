@@ -24,3 +24,5 @@ A terminal app for text editing using Rust
 - termion (alternative to termbox)
   - low level control
   - can handle cursor movement, text formatting
+
+Choosing termion as the TUI library 

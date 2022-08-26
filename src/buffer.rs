@@ -46,7 +46,7 @@ impl Buffer {
         }
     }
 
-    pub(crate) fn delete(&mut self) {
+    pub fn delete(&mut self) {
         if self.rows[self.cursor.row].len() > 0 {
             self.rows[self.cursor.row].pop();
         } else if self.rows.len() > 0 {
@@ -55,7 +55,7 @@ impl Buffer {
         }
     }
 
-    pub fn save(&self, filename: &String) -> std::io::Result<()> {
+    pub fn save(&self, filename: &str) -> std::io::Result<()> {
         let file = File::create(filename).expect("could not open file in write only mode");
         let mut file = LineWriter::new(file);
 
@@ -66,5 +66,44 @@ impl Buffer {
 
         file.flush()?;
         Ok(())
+    }
+}
+#[cfg(test)]
+mod test {
+    use std::fs::{File, remove_file};
+    use std::io::Write;
+
+    use termion::input::TermRead;
+
+    use crate::buffer::Buffer;
+
+    #[test]
+    fn buffer_writes_saves_and_deletes() {
+        let filename = "write_test_file.txt";
+        let mut f = File::create(filename).unwrap();
+        f.write_all(b"Hello, ").unwrap();
+
+        let mut buffer = Buffer::new(filename);
+        buffer.write('W');
+        buffer.write('o');
+        buffer.write('r');
+        buffer.write('l');
+        buffer.write('d');
+
+        buffer.save(filename).unwrap();
+
+        let mut file = File::open(filename).unwrap();
+        assert_eq!(file.read_line().unwrap().unwrap(), "Hello, World");
+
+        buffer.delete();
+        buffer.delete();
+        buffer.delete();
+        buffer.delete();
+        buffer.delete();
+
+        buffer.save(filename).unwrap();
+        let mut file = File::open(filename).unwrap();
+        assert_eq!(file.read_line().unwrap().unwrap(), "Hello, ");
+        remove_file(filename).unwrap();
     }
 }

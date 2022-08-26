@@ -5,9 +5,7 @@ use termion::event::{Event, Key};
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
 
-use buffer::Buffer;
-
-mod buffer;
+use text_editor::buffer::Buffer;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -29,7 +27,7 @@ fn main() {
                 buffer.write(char);
             },
             Event::Key(Key::Ctrl('s')) => {
-                buffer.save(filename);
+                buffer.save(filename).unwrap();
             },
             Event::Key(Key::Backspace) => {
                 buffer.delete();
