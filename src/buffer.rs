@@ -2,10 +2,14 @@ use std::fs::File;
 use std::io;
 use std::io::{BufRead, LineWriter, Write};
 
+struct Cursor {
+    row: usize,
+    col: usize,
+}
+
 pub struct Buffer {
     rows: Vec<String>,
-    row: u32,
-    col: u32,
+    cursor: Cursor
 }
 
 impl Buffer {
@@ -18,12 +22,11 @@ impl Buffer {
             buffer.push(line);
         }
 
-        let current_row: u32 = (buffer.len() - 1) as u32;
+        let current_row: usize = buffer.len() - 1;
 
         return Buffer {
             rows: buffer,
-            row: current_row,
-            col: 0,
+            cursor: Cursor { row: current_row, col: 0 }
         };
     }
 
@@ -35,16 +38,21 @@ impl Buffer {
         match char {
             '\n' => {
                 self.rows.push(String::new());
-                self.row += 1;
+                self.cursor.row += 1;
             },
             _ => {
-                self.rows[self.row as usize].push(char);
+                self.rows[self.cursor.row].push(char);
             }
         }
     }
 
     pub(crate) fn delete(&mut self) {
-        self.rows[self.row as usize].pop();
+        if self.rows[self.cursor.row].len() > 0 {
+            self.rows[self.cursor.row].pop();
+        } else if self.rows.len() > 0 {
+            self.rows.pop();
+            self.cursor.row -= 1;
+        }
     }
 
     pub fn save(&self, filename: &String) -> std::io::Result<()> {

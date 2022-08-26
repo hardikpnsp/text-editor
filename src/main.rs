@@ -1,19 +1,20 @@
-mod buffer;
-
-use std::io::{stdin, stdout, Stdout, Write};
 use std::env;
-use termion::cursor::Left;
+use std::io::{stdin, stdout, Stdout, Write};
+
 use termion::event::{Event, Key};
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
 
 use buffer::Buffer;
 
+mod buffer;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let filename = args.get(1).expect("file name not provided");
 
     let mut stdout = stdout().into_raw_mode().unwrap();
+
     let mut buffer: Buffer = Buffer::new(filename);
 
     render(&mut stdout, &mut buffer);
