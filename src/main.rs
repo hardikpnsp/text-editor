@@ -1,26 +1,37 @@
-use std::io::{stdin, stdout, Read, Write, BufRead, BufReader, Lines};
-use std::{env, io};
 use std::fs::File;
+use std::io::{stdin, stdout, BufRead, BufReader, Lines, Read, Write};
+use std::{env, io};
 use termion::event::{Event, Key};
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
+
+struct Buffer {
+    rows: Vec<String>,
+}
+
+impl Buffer {
+    fn new(filename: &str) -> Self {
+        let file = File::open(filename).expect("could not open file");
+        let mut buffer: Vec<String> = vec![];
+
+        for line in io::BufReader::new(file).lines() {
+            let line = line.expect("failed reading line");
+            buffer.push(line);
+        }
+
+        return Buffer { rows: buffer };
+    }
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let filename = args.get(1).expect("file name not provided");
 
-    let file = File::open(filename).expect(&format!("could not open file: {}", filename));
-
     let mut stdout = stdout().into_raw_mode().unwrap();
-    let mut buffer: Vec<String> = vec![];
-
-    for line in io::BufReader::new(file).lines() {
-        let line = line.expect("failed reading line");
-        buffer.push(line);
-    }
+    let buffer: Buffer = Buffer::new(filename);
 
     write!(stdout, "{}", termion::clear::All).unwrap();
-    for line in buffer {
+    for line in buffer.rows {
         write!(stdout, "{}\r\n", line).unwrap();
     }
     write!(stdout, "{}", termion::cursor::Show).unwrap();
