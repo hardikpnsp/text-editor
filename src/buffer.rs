@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io;
-use std::io::BufRead;
+use std::io::{BufRead, LineWriter, Write};
 
 pub struct Buffer {
     rows: Vec<String>,
@@ -41,5 +41,18 @@ impl Buffer {
                 self.rows[self.row as usize].push(char);
             }
         }
+    }
+
+    pub fn save(&self, filename: &String) -> std::io::Result<()> {
+        let file = File::create(filename).expect("could not open file in write only mode");
+        let mut file = LineWriter::new(file);
+
+        for row in &self.rows {
+            file.write_all(row.as_ref())?;
+            file.write_all(b"\n")?;
+        }
+
+        file.flush()?;
+        Ok(())
     }
 }

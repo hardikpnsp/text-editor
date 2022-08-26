@@ -27,6 +27,9 @@ fn main() {
             Event::Key(Key::Char(char)) => {
                 buffer.write(char);
             },
+            Event::Key(Key::Ctrl('s')) => {
+                buffer.save(filename);
+            }
             _ => {}
         }
 
