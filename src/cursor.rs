@@ -1,11 +1,22 @@
 use termion::cursor::Goto;
 
 pub struct Cursor {
-    pub row: usize,
-    pub col: usize,
+    row: usize,
+    col: usize,
 }
 
 impl Cursor {
+    pub fn new() -> Self {
+        Cursor {row: 0, col: 0}
+    }
+    pub fn row(&self) -> usize {
+        self.row
+    }
+
+    pub fn col(&self) -> usize {
+        self.col
+    }
+
     pub fn right(&mut self) {
         self.goto(self.row, self.col + 1);
     }

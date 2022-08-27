@@ -21,7 +21,7 @@ impl Buffer {
 
         return Buffer {
             rows: buffer,
-            cursor: Cursor { row: 0, col: 0 }
+            cursor: Cursor::new()
         };
     }
 
@@ -34,30 +34,30 @@ impl Buffer {
 
         match char {
             '\n' => {
-                let line = &self.rows[self.cursor.row];
-                if self.cursor.col >= line.len() {
-                    self.rows.insert( self.cursor.row + 1, String::new());
+                let line = &self.rows[self.cursor.row()];
+                if self.cursor.col() >= line.len() {
+                    self.rows.insert( self.cursor.row() + 1, String::new());
                     self.cursor.new_line();
                 } else {
-                    let cur = &line[..self.cursor.col];
-                    let next = &line[self.cursor.col..];
+                    let cur = &line[..self.cursor.col()];
+                    let next = &line[self.cursor.col()..];
                     let result = next.to_string();
-                    self.rows[self.cursor.row] = cur.to_string();
-                    self.rows.insert(self.cursor.row + 1, result);
+                    self.rows[self.cursor.row()] = cur.to_string();
+                    self.rows.insert(self.cursor.row() + 1, result);
                     self.cursor.new_line();
                 }
             },
             _ => {
-                let line = &self.rows[self.cursor.row];
-                if self.cursor.col > line.len() {
-                    self.rows[self.cursor.row].push(char);
+                let line = &self.rows[self.cursor.row()];
+                if self.cursor.col() > line.len() {
+                    self.rows[self.cursor.row()].push(char);
                 } else {
-                    let pre = &line[..self.cursor.col];
-                    let post = &line[self.cursor.col..];
+                    let pre = &line[..self.cursor.col()];
+                    let post = &line[self.cursor.col()..];
                     let mut result = pre.to_string();
                     result.push(char);
                     result.push_str(post);
-                    self.rows[self.cursor.row] = result;
+                    self.rows[self.cursor.row()] = result;
                     self.cursor.right();
                 }
             }
@@ -65,35 +65,35 @@ impl Buffer {
     }
 
     fn adjust_cursor_boundary_before_edit(&mut self) {
-        if self.cursor.row > self.rows.len() {
+        if self.cursor.row() > self.rows.len() {
             self.cursor.goto(self.rows.len() - 1, self.rows[self.rows.len() - 1].len());
         }
-        if self.cursor.col > self.rows[self.cursor.row].len() {
-            self.cursor.goto(self.cursor.row, self.rows[self.cursor.row].len());
+        if self.cursor.col() > self.rows[self.cursor.row()].len() {
+            self.cursor.goto(self.cursor.row(), self.rows[self.cursor.row()].len());
         }
     }
 
     pub fn delete(&mut self) {
         self.adjust_cursor_boundary_before_edit();
 
-        if self.cursor.col == 0 {
-            if self.cursor.row != 0 {
-                let l = self.rows[self.cursor.row - 1].len();
+        if self.cursor.col() == 0 {
+            if self.cursor.row() != 0 {
+                let l = self.rows[self.cursor.row() - 1].len();
 
-                let current_line = self.rows[self.cursor.row].clone();
-                self.rows[self.cursor.row - 1].push_str(&*current_line);
+                let current_line = self.rows[self.cursor.row()].clone();
+                self.rows[self.cursor.row() - 1].push_str(&*current_line);
 
                 self.cursor.delete_line(l);
-                self.rows.remove(self.cursor.row + 1);
+                self.rows.remove(self.cursor.row() + 1);
             }
         } else {
-            let line = &self.rows[self.cursor.row];
-            let cur = &line[..self.cursor.col];
-            let next = &line[self.cursor.col..];
+            let line = &self.rows[self.cursor.row()];
+            let cur = &line[..self.cursor.col()];
+            let next = &line[self.cursor.col()..];
             let mut result = cur.to_string();
             result.pop();
             result.push_str(next);
-            self.rows[self.cursor.row] = result;
+            self.rows[self.cursor.row()] = result;
             self.cursor.left();
         }
     }

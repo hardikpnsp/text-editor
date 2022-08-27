@@ -1,8 +1,10 @@
 use std::io::{stdin, stdout, Stdout, Write};
+
 use termion::cursor::DetectCursorPos;
 use termion::event::{Event, Key};
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
+
 use crate::buffer::Buffer;
 
 pub struct Editor<'a> {
