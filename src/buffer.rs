@@ -29,6 +29,8 @@ impl Line {
                 display_rows += 1;
             }
             print!("{}\r\n", self.value[cur..].to_string());
+            display_rows += 1;
+
             self.display_rows = display_rows;
         } else {
             print!("{}\r\n", self.value);
@@ -43,6 +45,63 @@ pub struct Buffer {
 }
 
 impl Buffer {
+    pub fn buffer_row(&self) -> usize {
+        let cursor_row = self.cursor.row();
+        let mut buffer_row = 0;
+
+        let mut cur = 0;
+
+        while cur < cursor_row {
+            cur += self.lines[buffer_row].display_rows;
+            if cur <= cursor_row {
+                buffer_row += 1;
+            }
+        }
+
+        buffer_row
+    }
+
+    pub fn buffer_row_start(&self, buffer_row :usize) ->usize {
+        let mut cursor_row = 0;
+
+        for line in 0..buffer_row {
+            cursor_row += self.lines[line].display_rows;
+        }
+
+        cursor_row
+    }
+
+    pub fn buffer_col(&self) -> usize {
+        let cursor_row = self.cursor.row();
+        let cursor_col = self.cursor.col();
+
+        let buffer_row = self.buffer_row();
+        let cursor_row_offset = cursor_row - self.buffer_row_start(buffer_row);
+
+        let (col, _row) = terminal_size().unwrap();
+
+        ((col as usize) * cursor_row_offset) + cursor_col
+    }
+
+    pub fn last_cursor_row(&self) -> usize {
+        let mut cursor_row = 0;
+        for line in &self.lines {
+            cursor_row += line.display_rows;
+        }
+
+        cursor_row
+    }
+
+    pub fn last_cursor_col(&self, buffer_row: usize) -> usize {
+        let line_length = self.lines[buffer_row].value.len();
+
+        let (col, _row) = terminal_size().unwrap();
+
+        let remainder = line_length % col as usize;
+
+        return remainder
+    }
+
     pub fn new(filename: &str) -> Self {
         let file = File::open(filename).expect("could not open file");
         let mut buffer: Vec<Line> = vec![];
@@ -60,34 +119,36 @@ impl Buffer {
 
     pub fn write(&mut self, char: char) {
         self.adjust_cursor_boundary_before_edit();
-
+        let row = self.buffer_row();
+        let col = self.buffer_col();
         match char {
             '\n' => {
-                let line = &self.lines[self.cursor.row()].value;
-                if self.cursor.col() >= line.len() {
+                let line = &self.lines[row].value;
+                if col >= line.len() {
+
                     self.lines
-                        .insert(self.cursor.row() + 1, Line::from(String::new()));
+                        .insert(row + 1, Line::from(String::new()));
                     self.cursor.new_line();
                 } else {
-                    let cur = &line[..self.cursor.col()];
-                    let next = &line[self.cursor.col()..];
+                    let cur = &line[..col];
+                    let next = &line[col..];
                     let result = next.to_string();
-                    self.lines[self.cursor.row()].value = cur.to_string();
-                    self.lines.insert(self.cursor.row() + 1, Line::from(result));
+                    self.lines[row].value = cur.to_string();
+                    self.lines.insert(row + 1, Line::from(result));
                     self.cursor.new_line();
                 }
             }
             _ => {
-                let line = &self.lines[self.cursor.row()].value;
-                if self.cursor.col() > line.len() {
-                    self.lines[self.cursor.row()].value.push(char);
+                let line = &self.lines[row].value;
+                if col > line.len() {
+                    self.lines[row].value.push(char);
                 } else {
-                    let pre = &line[..self.cursor.col()];
-                    let post = &line[self.cursor.col()..];
+                    let pre = &line[..col];
+                    let post = &line[col..];
                     let mut result = pre.to_string();
                     result.push(char);
                     result.push_str(post);
-                    self.lines[self.cursor.row()].value = result;
+                    self.lines[row].value = result;
                     self.cursor.right();
                 }
             }
@@ -95,41 +156,48 @@ impl Buffer {
     }
 
     fn adjust_cursor_boundary_before_edit(&mut self) {
-        if self.cursor.row() > self.lines.len() {
+        let last_cursor_row = self.last_cursor_row();
+        if self.cursor.row() > last_cursor_row {
+            let last_cursor_column = self.last_cursor_col(self.lines.len() - 1);
             self.cursor.goto(
-                self.lines.len() - 1,
-                self.lines[self.lines.len() - 1].value.len(),
+                last_cursor_row,
+                last_cursor_column,
             );
         }
-        if self.cursor.col() > self.lines[self.cursor.row()].value.len() {
+        let row = self.buffer_row();
+        let col = self.buffer_col();
+
+        if col >= self.lines[row].value.len() {
+            let last_cursor_column = self.last_cursor_col(row);
             self.cursor
-                .goto(self.cursor.row(), self.lines[self.cursor.row()].value.len());
+                .goto(self.cursor.row(), last_cursor_column);
         }
     }
 
     pub fn delete(&mut self) {
         self.adjust_cursor_boundary_before_edit();
+        let row = self.buffer_row();
+        let col = self.buffer_col();
+        if col == 0 {
+            if row != 0 {
+                let l = self.lines[row - 1].value.len();
 
-        if self.cursor.col() == 0 {
-            if self.cursor.row() != 0 {
-                let l = self.lines[self.cursor.row() - 1].value.len();
-
-                let current_line = self.lines[self.cursor.row()].value.clone();
-                self.lines[self.cursor.row() - 1]
+                let current_line = self.lines[row].value.clone();
+                self.lines[row - 1]
                     .value
                     .push_str(&*current_line);
 
                 self.cursor.delete_line(l);
-                self.lines.remove(self.cursor.row() + 1);
+                self.lines.remove(row);
             }
         } else {
-            let line = &self.lines[self.cursor.row()].value;
-            let cur = &line[..self.cursor.col()];
-            let next = &line[self.cursor.col()..];
+            let line = &self.lines[row].value;
+            let cur = &line[..col];
+            let next = &line[col..];
             let mut result = cur.to_string();
             result.pop();
             result.push_str(next);
-            self.lines[self.cursor.row()].value = result;
+            self.lines[row].value = result;
             self.cursor.left();
         }
     }

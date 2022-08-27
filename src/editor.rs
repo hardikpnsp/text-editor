@@ -53,7 +53,9 @@ impl<'a> Editor<'a> {
                     self.buffer.cursor.up();
                 }
                 Event::Key(Key::Down) => {
-                    self.buffer.cursor.down();
+                    if self.buffer.cursor.row() < self.buffer.last_cursor_row() - 1 {
+                        self.buffer.cursor.down();
+                    }
                 }
                 Event::Key(Key::Left) => {
                     self.buffer.cursor.left();
@@ -79,6 +81,7 @@ impl<'a> Editor<'a> {
         .unwrap();
         self.buffer.render();
 
+        write!(stdout, "{}:{}\t", self.buffer.cursor.row(), self.buffer.cursor.col()).unwrap();
         write!(stdout, "{}", termion::cursor::Goto(row, col)).unwrap();
         stdout.flush().unwrap();
     }
