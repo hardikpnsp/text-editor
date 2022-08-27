@@ -81,7 +81,11 @@ impl<'a> Editor<'a> {
         .unwrap();
         self.buffer.render();
 
-        write!(stdout, "{}:{}\t", self.buffer.cursor.row(), self.buffer.cursor.col()).unwrap();
+
+        let row_col_string = &*format!("{}:{}", self.buffer.cursor.row(), self.buffer.cursor.col());
+
+        let (y, x) = termion::terminal_size().unwrap();
+        write!(stdout, "{}{}", termion::cursor::Goto(y - (row_col_string.len() as u16), x), row_col_string).unwrap();
         write!(stdout, "{}", termion::cursor::Goto(row, col)).unwrap();
         stdout.flush().unwrap();
     }

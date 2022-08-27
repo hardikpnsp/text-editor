@@ -45,6 +45,7 @@ Choosing termion as the TUI library
     - [x] Chars should be written where cursor is
 - [x] save file
 
-- [ ] text wrapping
+- [x] text wrapping
 - [ ] memory optimization
 - [ ] opening and editing multiple files
+- [x] add row:col at the bottom right to show cursor position
