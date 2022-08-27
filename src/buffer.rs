@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, LineWriter, Write};
+
 use termion::cursor::{Left, Right};
 
 pub struct Cursor {
@@ -19,7 +20,7 @@ impl Cursor {
         self.col -= 1;
     }
 
-    fn new_line(&mut self) {
+    pub fn new_line(&mut self) {
         self.row += 1;
         self.col = 0;
         print!("{}", termion::cursor::Goto(1, self.row as u16 + 1));
@@ -35,7 +36,7 @@ impl Cursor {
         print!("{}", termion::cursor::Goto(self.col as u16 + 1, self.row as u16 + 1));
     }
 
-    fn delete_line(&mut self, previous_line_len: usize) {
+    pub fn delete_line(&mut self, previous_line_len: usize) {
         if self.row > 0 {
             self.row -= 1;
             self.col = previous_line_len;
@@ -46,7 +47,7 @@ impl Cursor {
 
 pub struct Buffer {
     rows: Vec<String>,
-    pub cursor: Cursor
+    pub cursor: Cursor,
 }
 
 impl Buffer {
@@ -145,7 +146,7 @@ mod test {
 
     use termion::input::TermRead;
 
-    use crate::buffer::Buffer;
+    use super::*;
 
     #[test]
     fn buffer_writes_saves_and_deletes() {
