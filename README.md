@@ -26,3 +26,18 @@ A terminal app for text editing using Rust
   - can handle cursor movement, text formatting
 
 Choosing termion as the TUI library 
+
+# Progress so far
+
+## Features
+- [x] open and display file
+- [ ] edit file
+  - [ ] cursor movement
+    - [x] cursor should move with to arrow keys
+      - [ ] when pressed down/up, if the line length is shorter, cursor should move to end of line
+  - [x] user input
+    - [x] Enter for next line
+    - [x] Backspace to delete character
+    - [x] Ctrl + s to save file
+    - [x] Chars should be written where cursor is
+- [x] save file

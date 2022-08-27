@@ -37,6 +37,18 @@ fn main() {
             Event::Key(Key::Backspace) => {
                 buffer.delete();
             },
+            Event::Key(Key::Up) => {
+                buffer.cursor.up();
+            },
+            Event::Key(Key::Down) => {
+                buffer.cursor.down();
+            },
+            Event::Key(Key::Left) => {
+                buffer.cursor.left();
+            },
+            Event::Key(Key::Right) => {
+                buffer.cursor.right();
+            }
             _ => {}
         }
 

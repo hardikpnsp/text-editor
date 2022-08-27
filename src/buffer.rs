@@ -3,26 +3,36 @@ use std::io;
 use std::io::{BufRead, LineWriter, Write};
 use termion::cursor::{Left, Right};
 
-struct Cursor {
+pub struct Cursor {
     row: usize,
     col: usize,
 }
 
 impl Cursor {
-    fn right(&mut self) {
+    pub fn right(&mut self) {
         print!("{}", Right(1));
         self.col += 1;
     }
 
-    fn left(&mut self) {
+    pub fn left(&mut self) {
         print!("{}", Left(1));
         self.col -= 1;
     }
 
-    fn down(&mut self) {
+    fn new_line(&mut self) {
         self.row += 1;
         self.col = 0;
         print!("{}", termion::cursor::Goto(1, self.row as u16 + 1));
+    }
+
+    pub fn up(&mut self) {
+        self.row -= 1;
+        print!("{}", termion::cursor::Goto(self.col as u16 + 1, self.row as u16 + 1));
+    }
+
+    pub fn down(&mut self) {
+        self.row += 1;
+        print!("{}", termion::cursor::Goto(self.col as u16 + 1, self.row as u16 + 1));
     }
 
     fn delete_line(&mut self, previous_line_len: usize) {
@@ -36,7 +46,7 @@ impl Cursor {
 
 pub struct Buffer {
     rows: Vec<String>,
-    cursor: Cursor
+    pub cursor: Cursor
 }
 
 impl Buffer {
@@ -65,14 +75,14 @@ impl Buffer {
                 let line = &self.rows[self.cursor.row];
                 if self.cursor.col >= line.len() {
                     self.rows.insert( self.cursor.row + 1, String::new());
-                    self.cursor.down();
+                    self.cursor.new_line();
                 } else {
                     let cur = &line[..self.cursor.col];
                     let next = &line[self.cursor.col..];
                     let result = next.to_string();
                     self.rows[self.cursor.row] = cur.to_string();
                     self.rows.insert(self.cursor.row + 1, result);
-                    self.cursor.down();
+                    self.cursor.new_line();
                 }
             },
             _ => {
