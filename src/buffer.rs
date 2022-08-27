@@ -1,20 +1,39 @@
+use crate::cursor::Cursor;
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, LineWriter, Write};
-
-use crate::cursor::Cursor;
+use termion::terminal_size;
 
 struct Line {
     value: String,
+    display_rows: usize,
 }
 
 impl Line {
     pub fn from(value: String) -> Self {
-        Line { value }
+        Line {
+            value,
+            display_rows: 1,
+        }
     }
 
-    pub fn render(&self) {
-        print!("{}\r\n", self.value);
+    pub fn render(&mut self) {
+        let (col, _row) = terminal_size().unwrap();
+        if col < self.value.len() as u16 {
+            let mut display_rows = 0;
+            let mut cur = 0;
+            let step: usize = (col).into();
+            while cur + step < self.value.len() {
+                print!("{}\r\n", self.value[cur..(cur + step)].to_string());
+                cur += step;
+                display_rows += 1;
+            }
+            print!("{}\r\n", self.value[cur..].to_string());
+            self.display_rows = display_rows;
+        } else {
+            print!("{}\r\n", self.value);
+            self.display_rows = 1;
+        }
     }
 }
 
@@ -128,8 +147,8 @@ impl Buffer {
         Ok(())
     }
 
-    pub fn render(&self) {
-        for line in &self.lines {
+    pub fn render(&mut self) {
+        for line in &mut self.lines {
             line.render();
         }
     }

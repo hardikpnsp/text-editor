@@ -68,7 +68,7 @@ impl<'a> Editor<'a> {
         }
     }
 
-    fn render(&self, stdout: &mut RawTerminal<Stdout>) {
+    fn render(&mut self, stdout: &mut RawTerminal<Stdout>) {
         let (row, col) = stdout.cursor_pos().unwrap();
         write!(
             stdout,
