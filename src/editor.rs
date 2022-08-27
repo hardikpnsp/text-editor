@@ -77,9 +77,7 @@ impl<'a> Editor<'a> {
             termion::cursor::Goto(1, 1)
         )
         .unwrap();
-        for line in self.buffer.rows() {
-            write!(stdout, "{}\r\n", line).unwrap();
-        }
+        self.buffer.render();
 
         write!(stdout, "{}", termion::cursor::Goto(row, col)).unwrap();
         stdout.flush().unwrap();

@@ -4,29 +4,39 @@ use std::io::{BufRead, LineWriter, Write};
 
 use crate::cursor::Cursor;
 
+struct Line {
+    value: String,
+}
+
+impl Line {
+    pub fn from(value: String) -> Self {
+        Line { value }
+    }
+
+    pub fn render(&self) {
+        print!("{}\r\n", self.value);
+    }
+}
+
 pub struct Buffer {
-    rows: Vec<String>,
+    lines: Vec<Line>,
     pub cursor: Cursor,
 }
 
 impl Buffer {
     pub fn new(filename: &str) -> Self {
         let file = File::open(filename).expect("could not open file");
-        let mut buffer: Vec<String> = vec![];
+        let mut buffer: Vec<Line> = vec![];
 
         for line in io::BufReader::new(file).lines() {
             let line = line.expect("failed reading line");
-            buffer.push(line);
+            buffer.push(Line::from(line));
         }
 
         return Buffer {
-            rows: buffer,
+            lines: buffer,
             cursor: Cursor::new(),
         };
-    }
-
-    pub fn rows(&self) -> &Vec<String> {
-        return &self.rows;
     }
 
     pub fn write(&mut self, char: char) {
@@ -34,30 +44,31 @@ impl Buffer {
 
         match char {
             '\n' => {
-                let line = &self.rows[self.cursor.row()];
+                let line = &self.lines[self.cursor.row()].value;
                 if self.cursor.col() >= line.len() {
-                    self.rows.insert(self.cursor.row() + 1, String::new());
+                    self.lines
+                        .insert(self.cursor.row() + 1, Line::from(String::new()));
                     self.cursor.new_line();
                 } else {
                     let cur = &line[..self.cursor.col()];
                     let next = &line[self.cursor.col()..];
                     let result = next.to_string();
-                    self.rows[self.cursor.row()] = cur.to_string();
-                    self.rows.insert(self.cursor.row() + 1, result);
+                    self.lines[self.cursor.row()].value = cur.to_string();
+                    self.lines.insert(self.cursor.row() + 1, Line::from(result));
                     self.cursor.new_line();
                 }
             }
             _ => {
-                let line = &self.rows[self.cursor.row()];
+                let line = &self.lines[self.cursor.row()].value;
                 if self.cursor.col() > line.len() {
-                    self.rows[self.cursor.row()].push(char);
+                    self.lines[self.cursor.row()].value.push(char);
                 } else {
                     let pre = &line[..self.cursor.col()];
                     let post = &line[self.cursor.col()..];
                     let mut result = pre.to_string();
                     result.push(char);
                     result.push_str(post);
-                    self.rows[self.cursor.row()] = result;
+                    self.lines[self.cursor.row()].value = result;
                     self.cursor.right();
                 }
             }
@@ -65,13 +76,15 @@ impl Buffer {
     }
 
     fn adjust_cursor_boundary_before_edit(&mut self) {
-        if self.cursor.row() > self.rows.len() {
-            self.cursor
-                .goto(self.rows.len() - 1, self.rows[self.rows.len() - 1].len());
+        if self.cursor.row() > self.lines.len() {
+            self.cursor.goto(
+                self.lines.len() - 1,
+                self.lines[self.lines.len() - 1].value.len(),
+            );
         }
-        if self.cursor.col() > self.rows[self.cursor.row()].len() {
+        if self.cursor.col() > self.lines[self.cursor.row()].value.len() {
             self.cursor
-                .goto(self.cursor.row(), self.rows[self.cursor.row()].len());
+                .goto(self.cursor.row(), self.lines[self.cursor.row()].value.len());
         }
     }
 
@@ -80,22 +93,24 @@ impl Buffer {
 
         if self.cursor.col() == 0 {
             if self.cursor.row() != 0 {
-                let l = self.rows[self.cursor.row() - 1].len();
+                let l = self.lines[self.cursor.row() - 1].value.len();
 
-                let current_line = self.rows[self.cursor.row()].clone();
-                self.rows[self.cursor.row() - 1].push_str(&*current_line);
+                let current_line = self.lines[self.cursor.row()].value.clone();
+                self.lines[self.cursor.row() - 1]
+                    .value
+                    .push_str(&*current_line);
 
                 self.cursor.delete_line(l);
-                self.rows.remove(self.cursor.row() + 1);
+                self.lines.remove(self.cursor.row() + 1);
             }
         } else {
-            let line = &self.rows[self.cursor.row()];
+            let line = &self.lines[self.cursor.row()].value;
             let cur = &line[..self.cursor.col()];
             let next = &line[self.cursor.col()..];
             let mut result = cur.to_string();
             result.pop();
             result.push_str(next);
-            self.rows[self.cursor.row()] = result;
+            self.lines[self.cursor.row()].value = result;
             self.cursor.left();
         }
     }
@@ -104,13 +119,19 @@ impl Buffer {
         let file = File::create(filename).expect("could not open file in write only mode");
         let mut file = LineWriter::new(file);
 
-        for row in &self.rows {
-            file.write_all(row.as_ref())?;
+        for line in &self.lines {
+            file.write_all(line.value.as_ref())?;
             file.write_all(b"\r\n")?;
         }
 
         file.flush()?;
         Ok(())
+    }
+
+    pub fn render(&self) {
+        for line in &self.lines {
+            line.render();
+        }
     }
 }
 #[cfg(test)]
