@@ -1,3 +1,3 @@
 mod buffer;
-pub mod editor;
 mod cursor;
+pub mod editor;

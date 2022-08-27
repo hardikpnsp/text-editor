@@ -7,7 +7,7 @@ pub struct Cursor {
 
 impl Cursor {
     pub fn new() -> Self {
-        Cursor {row: 0, col: 0}
+        Cursor { row: 0, col: 0 }
     }
     pub fn row(&self) -> usize {
         self.row

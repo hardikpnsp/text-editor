@@ -21,7 +21,7 @@ impl Buffer {
 
         return Buffer {
             rows: buffer,
-            cursor: Cursor::new()
+            cursor: Cursor::new(),
         };
     }
 
@@ -36,7 +36,7 @@ impl Buffer {
             '\n' => {
                 let line = &self.rows[self.cursor.row()];
                 if self.cursor.col() >= line.len() {
-                    self.rows.insert( self.cursor.row() + 1, String::new());
+                    self.rows.insert(self.cursor.row() + 1, String::new());
                     self.cursor.new_line();
                 } else {
                     let cur = &line[..self.cursor.col()];
@@ -46,7 +46,7 @@ impl Buffer {
                     self.rows.insert(self.cursor.row() + 1, result);
                     self.cursor.new_line();
                 }
-            },
+            }
             _ => {
                 let line = &self.rows[self.cursor.row()];
                 if self.cursor.col() > line.len() {
@@ -66,10 +66,12 @@ impl Buffer {
 
     fn adjust_cursor_boundary_before_edit(&mut self) {
         if self.cursor.row() > self.rows.len() {
-            self.cursor.goto(self.rows.len() - 1, self.rows[self.rows.len() - 1].len());
+            self.cursor
+                .goto(self.rows.len() - 1, self.rows[self.rows.len() - 1].len());
         }
         if self.cursor.col() > self.rows[self.cursor.row()].len() {
-            self.cursor.goto(self.cursor.row(), self.rows[self.cursor.row()].len());
+            self.cursor
+                .goto(self.cursor.row(), self.rows[self.cursor.row()].len());
         }
     }
 
@@ -113,7 +115,7 @@ impl Buffer {
 }
 #[cfg(test)]
 mod test {
-    use std::fs::{File, remove_file};
+    use std::fs::{remove_file, File};
     use std::io::{Read, Write};
 
     use termion::input::TermRead;
