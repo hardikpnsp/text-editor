@@ -13,11 +13,12 @@ impl Line {
     pub fn from(value: String) -> Self {
         Line {
             value,
-            display_rows: 1,
+            display_rows: 1, // number of rows required on terminal to display the whole line with wrapping
         }
     }
 
     pub fn render(&mut self) {
+        // renders the content of `self.value`, can take multiple terminal rows due to wrapping
         let (col, _row) = terminal_size().unwrap();
         if col < self.value.len() as u16 {
             let mut display_rows = 0;
@@ -40,12 +41,15 @@ impl Line {
 }
 
 pub struct Buffer {
+    // stores the entire file as a vector of `Line`s
+    // provides facility for editing and saving the file content
     lines: Vec<Line>,
     pub cursor: Cursor,
 }
 
 impl Buffer {
     pub fn buffer_row(&self) -> usize {
+        // Maps the current cursor row in terminal window with the row in `self.lines`
         let cursor_row = self.cursor.row();
         let mut buffer_row = 0;
 
@@ -62,6 +66,7 @@ impl Buffer {
     }
 
     pub fn buffer_row_start(&self, buffer_row :usize) ->usize {
+        // Finds the starting cursor row in terminal for the given row in buffer
         let mut cursor_row = 0;
 
         for line in 0..buffer_row {
@@ -72,6 +77,8 @@ impl Buffer {
     }
 
     pub fn buffer_col(&self) -> usize {
+        // Maps the current cursor column in terminal window with the column in `self.lines[self.buffer_row()]`
+
         let cursor_row = self.cursor.row();
         let cursor_col = self.cursor.col();
 
@@ -84,6 +91,7 @@ impl Buffer {
     }
 
     pub fn last_cursor_row(&self) -> usize {
+        // Calculates the last row on terminal for all the lines
         let mut cursor_row = 0;
         for line in &self.lines {
             cursor_row += line.display_rows;
@@ -93,6 +101,8 @@ impl Buffer {
     }
 
     pub fn last_cursor_col(&self, buffer_row: usize) -> usize {
+        // Calculates the last column for the cursor for given row
+
         let line_length = self.lines[buffer_row].value.len();
 
         let (col, _row) = terminal_size().unwrap();
@@ -156,6 +166,7 @@ impl Buffer {
     }
 
     fn adjust_cursor_boundary_before_edit(&mut self) {
+        // If cursor is not on text, bring it back to text to avoid out of bounds
         let last_cursor_row = self.last_cursor_row();
         if self.cursor.row() > last_cursor_row {
             let last_cursor_column = self.last_cursor_col(self.lines.len() - 1);

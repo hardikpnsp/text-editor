@@ -1,6 +1,7 @@
 use termion::cursor::Goto;
 
 pub struct Cursor {
+    // keeps track of cursor position in terminal
     row: usize,
     col: usize,
 }
