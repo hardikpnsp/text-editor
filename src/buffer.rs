@@ -30,6 +30,8 @@ impl Buffer {
     }
 
     pub fn write(&mut self, char: char) {
+        self.adjust_cursor_boundary_before_edit();
+
         match char {
             '\n' => {
                 let line = &self.rows[self.cursor.row];
@@ -47,7 +49,7 @@ impl Buffer {
             },
             _ => {
                 let line = &self.rows[self.cursor.row];
-                if self.cursor.col >= line.len() {
+                if self.cursor.col > line.len() {
                     self.rows[self.cursor.row].push(char);
                 } else {
                     let pre = &line[..self.cursor.col];
@@ -62,7 +64,18 @@ impl Buffer {
         }
     }
 
+    fn adjust_cursor_boundary_before_edit(&mut self) {
+        if self.cursor.row > self.rows.len() {
+            self.cursor.goto(self.rows.len() - 1, self.rows[self.rows.len() - 1].len());
+        }
+        if self.cursor.col > self.rows[self.cursor.row].len() {
+            self.cursor.goto(self.cursor.row, self.rows[self.cursor.row].len());
+        }
+    }
+
     pub fn delete(&mut self) {
+        self.adjust_cursor_boundary_before_edit();
+
         if self.cursor.col == 0 {
             if self.cursor.row != 0 {
                 let l = self.rows[self.cursor.row - 1].len();

@@ -2,6 +2,11 @@
 
 A terminal app for text editing using Rust
 
+## Run
+- clone repo
+- run: `cargo run <filepath>` to open the file in terminal editor
+- run: `cargo test` to run test cases
+
 ## Level 1: MVP
 
 - A command line utility: `te`
@@ -29,15 +34,17 @@ Choosing termion as the TUI library
 
 # Progress so far
 
-## Features
 - [x] open and display file
-- [ ] edit file
-  - [ ] cursor movement
+- [x] edit file
+  - [x] cursor movement
     - [x] cursor should move with to arrow keys
-      - [ ] when pressed down/up, if the line length is shorter, cursor should move to end of line
   - [x] user input
     - [x] Enter for next line
     - [x] Backspace to delete character
     - [x] Ctrl + s to save file
     - [x] Chars should be written where cursor is
 - [x] save file
+
+- [ ] text wrapping
+- [ ] memory optimization
+- [ ] opening and editing multiple files

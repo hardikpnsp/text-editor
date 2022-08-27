@@ -1,4 +1,4 @@
-use termion::cursor::{Left, Right};
+use termion::cursor::Goto;
 
 pub struct Cursor {
     pub row: usize,
@@ -7,36 +7,38 @@ pub struct Cursor {
 
 impl Cursor {
     pub fn right(&mut self) {
-        print!("{}", Right(1));
-        self.col += 1;
+        self.goto(self.row, self.col + 1);
     }
 
     pub fn left(&mut self) {
-        print!("{}", Left(1));
-        self.col -= 1;
+        if self.col > 0 {
+            self.goto(self.row, self.col - 1);
+        }
     }
 
     pub fn new_line(&mut self) {
-        self.row += 1;
-        self.col = 0;
-        print!("{}", termion::cursor::Goto(1, self.row as u16 + 1));
+        self.goto(self.row + 1, 0);
     }
 
     pub fn up(&mut self) {
-        self.row -= 1;
-        print!("{}", termion::cursor::Goto(self.col as u16 + 1, self.row as u16 + 1));
+        if self.row > 0 {
+            self.goto(self.row - 1, self.col);
+        }
     }
 
     pub fn down(&mut self) {
-        self.row += 1;
-        print!("{}", termion::cursor::Goto(self.col as u16 + 1, self.row as u16 + 1));
+        self.goto(self.row + 1, self.col);
     }
 
     pub fn delete_line(&mut self, previous_line_len: usize) {
         if self.row > 0 {
-            self.row -= 1;
-            self.col = previous_line_len;
-            print!("{}", termion::cursor::Goto(self.col as u16 + 1, self.row as u16 + 1));
+            self.goto(self.row - 1, previous_line_len);
         }
+    }
+
+    pub fn goto(&mut self, row: usize, col: usize) {
+        self.row = row;
+        self.col = col;
+        print!("{}", Goto(self.col as u16 + 1, self.row as u16 + 1));
     }
 }
