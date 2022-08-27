@@ -1,5 +1,6 @@
 use std::env;
 use std::io::{stdin, stdout, Stdout, Write};
+use termion::cursor::DetectCursorPos;
 
 use termion::event::{Event, Key};
 use termion::input::TermRead;
@@ -15,6 +16,7 @@ fn main() {
 
     let mut buffer: Buffer = Buffer::new(filename);
 
+    write!(stdout, "{}{}", termion::clear::All, termion::cursor::Goto(1, 1)).unwrap();
     render(&mut stdout, &mut buffer);
 
     let stdin = stdin();
@@ -22,7 +24,10 @@ fn main() {
     for c in stdin.events() {
         let evt = c.unwrap();
         match evt {
-            Event::Key(Key::Esc) => break,
+            Event::Key(Key::Esc) => {
+                write!(stdout, "{}", termion::clear::All).unwrap();
+                return;
+            },
             Event::Key(Key::Char(char)) => {
                 buffer.write(char);
             },
@@ -40,9 +45,12 @@ fn main() {
 }
 
 fn render(stdout: &mut RawTerminal<Stdout>, buffer: &mut Buffer) {
+    let (row, col) = stdout.cursor_pos().unwrap();
     write!(stdout, "{}{}", termion::clear::All, termion::cursor::Goto(1, 1)).unwrap();
     for line in buffer.rows() {
         write!(stdout, "{}\r\n", line).unwrap();
     }
+    // restor cursor position
+    write!(stdout, "{}", termion::cursor::Goto(row, col)).unwrap();
     stdout.flush().unwrap();
 }

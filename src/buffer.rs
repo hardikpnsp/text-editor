@@ -1,10 +1,37 @@
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, LineWriter, Write};
+use termion::cursor::{Left, Right};
 
 struct Cursor {
     row: usize,
     col: usize,
+}
+
+impl Cursor {
+    fn right(&mut self) {
+        print!("{}", Right(1));
+        self.col += 1;
+    }
+
+    fn left(&mut self) {
+        print!("{}", Left(1));
+        self.col -= 1;
+    }
+
+    fn down(&mut self) {
+        self.row += 1;
+        self.col = 0;
+        print!("{}", termion::cursor::Goto(1, self.row as u16 + 1));
+    }
+
+    fn delete_line(&mut self, previous_line_len: usize) {
+        if self.row > 0 {
+            self.row -= 1;
+            self.col = previous_line_len;
+            print!("{}", termion::cursor::Goto(self.col as u16 + 1, self.row as u16 + 1));
+        }
+    }
 }
 
 pub struct Buffer {
@@ -22,11 +49,9 @@ impl Buffer {
             buffer.push(line);
         }
 
-        let current_row: usize = buffer.len() - 1;
-
         return Buffer {
             rows: buffer,
-            cursor: Cursor { row: current_row, col: 0 }
+            cursor: Cursor { row: 0, col: 0 }
         };
     }
 
@@ -37,21 +62,56 @@ impl Buffer {
     pub fn write(&mut self, char: char) {
         match char {
             '\n' => {
-                self.rows.push(String::new());
-                self.cursor.row += 1;
+                let line = &self.rows[self.cursor.row];
+                if self.cursor.col >= line.len() {
+                    self.rows.insert( self.cursor.row + 1, String::new());
+                    self.cursor.down();
+                } else {
+                    let cur = &line[..self.cursor.col];
+                    let next = &line[self.cursor.col..];
+                    let result = next.to_string();
+                    self.rows[self.cursor.row] = cur.to_string();
+                    self.rows.insert(self.cursor.row + 1, result);
+                    self.cursor.down();
+                }
             },
             _ => {
-                self.rows[self.cursor.row].push(char);
+                let line = &self.rows[self.cursor.row];
+                if self.cursor.col >= line.len() {
+                    self.rows[self.cursor.row].push(char);
+                } else {
+                    let pre = &line[..self.cursor.col];
+                    let post = &line[self.cursor.col..];
+                    let mut result = pre.to_string();
+                    result.push(char);
+                    result.push_str(post);
+                    self.rows[self.cursor.row] = result;
+                    self.cursor.right();
+                }
             }
         }
     }
 
     pub fn delete(&mut self) {
-        if self.rows[self.cursor.row].len() > 0 {
-            self.rows[self.cursor.row].pop();
-        } else if self.rows.len() > 0 {
-            self.rows.pop();
-            self.cursor.row -= 1;
+        if self.cursor.col == 0 {
+            if self.cursor.row != 0 {
+                let l = self.rows[self.cursor.row - 1].len();
+
+                let current_line = self.rows[self.cursor.row].clone();
+                self.rows[self.cursor.row - 1].push_str(&*current_line);
+
+                self.cursor.delete_line(l);
+                self.rows.remove(self.cursor.row + 1);
+            }
+        } else {
+            let line = &self.rows[self.cursor.row];
+            let cur = &line[..self.cursor.col];
+            let next = &line[self.cursor.col..];
+            let mut result = cur.to_string();
+            result.pop();
+            result.push_str(next);
+            self.rows[self.cursor.row] = result;
+            self.cursor.left();
         }
     }
 
@@ -71,7 +131,7 @@ impl Buffer {
 #[cfg(test)]
 mod test {
     use std::fs::{File, remove_file};
-    use std::io::Write;
+    use std::io::{Read, Write};
 
     use termion::input::TermRead;
 
@@ -81,20 +141,28 @@ mod test {
     fn buffer_writes_saves_and_deletes() {
         let filename = "write_test_file.txt";
         let mut f = File::create(filename).unwrap();
-        f.write_all(b"Hello, ").unwrap();
+        f.write_all(b", World").unwrap();
 
         let mut buffer = Buffer::new(filename);
-        buffer.write('W');
-        buffer.write('o');
-        buffer.write('r');
+        buffer.write('H');
+        buffer.write('e');
         buffer.write('l');
-        buffer.write('d');
+        buffer.write('l');
+        buffer.write('o');
 
         buffer.save(filename).unwrap();
 
         let mut file = File::open(filename).unwrap();
         assert_eq!(file.read_line().unwrap().unwrap(), "Hello, World");
 
+        buffer.write('\n');
+        buffer.save(filename).unwrap();
+
+        let mut file = File::open(filename).unwrap();
+        let mut result = String::new();
+        file.read_to_string(&mut result).unwrap();
+        assert_eq!(result, "Hello\r\n, World\r\n");
+
         buffer.delete();
         buffer.delete();
         buffer.delete();
@@ -103,7 +171,7 @@ mod test {
 
         buffer.save(filename).unwrap();
         let mut file = File::open(filename).unwrap();
-        assert_eq!(file.read_line().unwrap().unwrap(), "Hello, ");
+        assert_eq!(file.read_line().unwrap().unwrap(), "H, World");
         remove_file(filename).unwrap();
     }
 }
