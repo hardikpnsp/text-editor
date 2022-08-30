@@ -50,13 +50,9 @@ impl<'a> Editor<'a> {
                     self.buffer.delete();
                 }
                 Event::Key(Key::Up) => {
-                    self.buffer.cursor.up();
+                    self.buffer.up();
                 }
-                Event::Key(Key::Down) => {
-                    if self.buffer.cursor.row() < self.buffer.last_cursor_row() - 1 {
-                        self.buffer.cursor.down();
-                    }
-                }
+                Event::Key(Key::Down) => self.buffer.down(),
                 Event::Key(Key::Left) => {
                     self.buffer.cursor.left();
                 }
@@ -81,11 +77,23 @@ impl<'a> Editor<'a> {
         .unwrap();
         self.buffer.render();
 
-
-        let row_col_string = &*format!("{}:{}", self.buffer.cursor.row(), self.buffer.cursor.col());
+        let row_col_string = &*format!(
+            "{}:{} {}:{} {}",
+            self.buffer.cursor.row(),
+            self.buffer.cursor.col(),
+            self.buffer.buffer_row(),
+            self.buffer.buffer_col(),
+            self.buffer.last_cursor_row()
+        );
 
         let (y, x) = termion::terminal_size().unwrap();
-        write!(stdout, "{}{}", termion::cursor::Goto(y - (row_col_string.len() as u16), x), row_col_string).unwrap();
+        write!(
+            stdout,
+            "{}{}",
+            termion::cursor::Goto(y - (row_col_string.len() as u16), x),
+            row_col_string
+        )
+        .unwrap();
         write!(stdout, "{}", termion::cursor::Goto(row, col)).unwrap();
         stdout.flush().unwrap();
     }

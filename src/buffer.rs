@@ -45,17 +45,18 @@ pub struct Buffer {
     // provides facility for editing and saving the file content
     lines: Vec<Line>,
     pub cursor: Cursor,
+    top_offset: usize,
 }
 
 impl Buffer {
     pub fn buffer_row(&self) -> usize {
         // Maps the current cursor row in terminal window with the row in `self.lines`
         let cursor_row = self.cursor.row();
-        let mut buffer_row = 0;
+        let mut buffer_row = self.top_offset;
 
         let mut cur = 0;
 
-        while cur < cursor_row {
+        while cur < cursor_row && buffer_row < self.lines.len() {
             cur += self.lines[buffer_row].display_rows;
             if cur <= cursor_row {
                 buffer_row += 1;
@@ -65,11 +66,11 @@ impl Buffer {
         buffer_row
     }
 
-    pub fn buffer_row_start(&self, buffer_row :usize) ->usize {
+    pub fn buffer_row_start(&self, buffer_row: usize) -> usize {
         // Finds the starting cursor row in terminal for the given row in buffer
         let mut cursor_row = 0;
 
-        for line in 0..buffer_row {
+        for line in self.top_offset..buffer_row {
             cursor_row += self.lines[line].display_rows;
         }
 
@@ -93,7 +94,7 @@ impl Buffer {
     pub fn last_cursor_row(&self) -> usize {
         // Calculates the last row on terminal for all the lines
         let mut cursor_row = 0;
-        for line in &self.lines {
+        for line in &self.lines[self.top_offset..] {
             cursor_row += line.display_rows;
         }
 
@@ -109,7 +110,7 @@ impl Buffer {
 
         let remainder = line_length % col as usize;
 
-        return remainder
+        return remainder;
     }
 
     pub fn new(filename: &str) -> Self {
@@ -124,6 +125,7 @@ impl Buffer {
         return Buffer {
             lines: buffer,
             cursor: Cursor::new(),
+            top_offset: 0,
         };
     }
 
@@ -135,9 +137,7 @@ impl Buffer {
             '\n' => {
                 let line = &self.lines[row].value;
                 if col >= line.len() {
-
-                    self.lines
-                        .insert(row + 1, Line::from(String::new()));
+                    self.lines.insert(row + 1, Line::from(String::new()));
                     self.cursor.new_line();
                 } else {
                     let cur = &line[..col];
@@ -170,18 +170,14 @@ impl Buffer {
         let last_cursor_row = self.last_cursor_row();
         if self.cursor.row() > last_cursor_row {
             let last_cursor_column = self.last_cursor_col(self.lines.len() - 1);
-            self.cursor.goto(
-                last_cursor_row,
-                last_cursor_column,
-            );
+            self.cursor.goto(last_cursor_row, last_cursor_column);
         }
         let row = self.buffer_row();
         let col = self.buffer_col();
 
         if col >= self.lines[row].value.len() {
             let last_cursor_column = self.last_cursor_col(row);
-            self.cursor
-                .goto(self.cursor.row(), last_cursor_column);
+            self.cursor.goto(self.cursor.row(), last_cursor_column);
         }
     }
 
@@ -194,9 +190,7 @@ impl Buffer {
                 let l = self.lines[row - 1].value.len();
 
                 let current_line = self.lines[row].value.clone();
-                self.lines[row - 1]
-                    .value
-                    .push_str(&*current_line);
+                self.lines[row - 1].value.push_str(&*current_line);
 
                 self.cursor.delete_line(l);
                 self.lines.remove(row);
@@ -210,6 +204,25 @@ impl Buffer {
             result.push_str(next);
             self.lines[row].value = result;
             self.cursor.left();
+        }
+    }
+
+    pub fn down(&mut self) {
+        if self.cursor.row() >= self.last_cursor_row() - 1 {
+            return;
+        }
+        if self.cursor.row() + 2 >= termion::terminal_size().unwrap().1 as usize {
+            self.top_offset += 1;
+        } else {
+            self.cursor.down();
+        }
+    }
+
+    pub fn up(&mut self) {
+        if self.cursor.row() == 0 && self.top_offset > 0 {
+            self.top_offset -= 1;
+        } else if self.cursor.row() > 0 {
+            self.cursor.up();
         }
     }
 
@@ -227,7 +240,12 @@ impl Buffer {
     }
 
     pub fn render(&mut self) {
-        for line in &mut self.lines {
+        let (_col, row) = termion::terminal_size().unwrap();
+        let mut rows_to_draw: usize = self.top_offset + (row as usize - 1);
+        if rows_to_draw > self.lines.len() {
+            rows_to_draw = self.lines.len();
+        }
+        for line in &mut self.lines[self.top_offset..rows_to_draw] {
             line.render();
         }
     }
