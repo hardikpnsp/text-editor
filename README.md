@@ -8,12 +8,12 @@ A terminal app for text editing using Rust
 - run: `cargo test` to run test cases
 
 ## Usage
-Ctrl + N: open new file to edit
-Ctrl + R: to rotate between open files
-Ctrl + S: Save current file
-Esc: Exit current file
-Arrow Keys: cursor movement
-Backspace: erase character
+- Ctrl + N: open new file to edit
+- Ctrl + R: to rotate between open files
+- Ctrl + S: Save current file
+- Esc: Exit current file
+- Arrow Keys: cursor movement
+- Backspace: erase character
 
 ## Notes
 
