@@ -4,10 +4,22 @@ A terminal app for text editing using Rust
 
 ## Run
 - clone repo
-- run: `cargo run <filepath>` to open the file in terminal editor
+- run: `cargo run` to open the terminal editor
 - run: `cargo test` to run test cases
 
-## Level 1: MVP
+## Usage
+Ctrl + N: open new file to edit
+Ctrl + R: to rotate between open files
+Ctrl + S: Save current file
+Esc: Exit current file
+Arrow Keys: cursor movement
+Backspace: erase character
+
+## Notes
+
+- If you are looking for just the features implemented during hackathon, checkout to `hackathon` tag.
+
+### Level 1: MVP
 
 - A command line utility: `te`
 - open an existing file using `te <file-name>`
@@ -32,7 +44,7 @@ A terminal app for text editing using Rust
 
 Choosing termion as the TUI library 
 
-# Progress so far
+### Progress so far
 
 - [x] open and display file
 - [x] edit file
@@ -46,6 +58,6 @@ Choosing termion as the TUI library
 - [x] save file
 
 - [x] text wrapping
-- [ ] memory optimization
-- [ ] opening and editing multiple files
+- [x] opening and editing multiple files
 - [x] add row:col at the bottom right to show cursor position
+- [ ] memory optimization

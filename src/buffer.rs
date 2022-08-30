@@ -46,6 +46,7 @@ pub struct Buffer {
     lines: Vec<Line>,
     pub cursor: Cursor,
     top_offset: usize,
+    filename: String,
 }
 
 impl Buffer {
@@ -113,20 +114,24 @@ impl Buffer {
         return remainder;
     }
 
-    pub fn new(filename: &str) -> Self {
-        let file = File::open(filename).expect("could not open file");
-        let mut buffer: Vec<Line> = vec![];
+    pub fn new(filename: &str) -> Result<Self, ()> {
+        if let Ok(file) = File::open(filename) {
+            let mut buffer: Vec<Line> = vec![];
 
-        for line in io::BufReader::new(file).lines() {
-            let line = line.expect("failed reading line");
-            buffer.push(Line::from(line));
+            for line in io::BufReader::new(file).lines() {
+                let line = line.expect("failed reading line");
+                buffer.push(Line::from(line));
+            }
+
+            return Ok(Buffer {
+                lines: buffer,
+                cursor: Cursor::new(),
+                top_offset: 0,
+                filename: filename.to_string(),
+            });
+        } else {
+            return Err(());
         }
-
-        return Buffer {
-            lines: buffer,
-            cursor: Cursor::new(),
-            top_offset: 0,
-        };
     }
 
     pub fn write(&mut self, char: char) {
@@ -226,8 +231,16 @@ impl Buffer {
         }
     }
 
-    pub fn save(&self, filename: &str) -> std::io::Result<()> {
-        let file = File::create(filename).expect("could not open file in write only mode");
+    pub fn left(&mut self) {
+        self.cursor.left();
+    }
+
+    pub fn right(&mut self) {
+        self.cursor.right();
+    }
+
+    pub fn save(&self) -> std::io::Result<()> {
+        let file = File::create(self.filename.to_string()).expect("could not open file in write only mode");
         let mut file = LineWriter::new(file);
 
         for line in &self.lines {
@@ -272,13 +285,13 @@ mod test {
         buffer.write('l');
         buffer.write('o');
 
-        buffer.save(filename).unwrap();
+        buffer.save().unwrap();
 
         let mut file = File::open(filename).unwrap();
         assert_eq!(file.read_line().unwrap().unwrap(), "Hello, World");
 
         buffer.write('\n');
-        buffer.save(filename).unwrap();
+        buffer.save().unwrap();
 
         let mut file = File::open(filename).unwrap();
         let mut result = String::new();
@@ -291,7 +304,7 @@ mod test {
         buffer.delete();
         buffer.delete();
 
-        buffer.save(filename).unwrap();
+        buffer.save().unwrap();
         let mut file = File::open(filename).unwrap();
         assert_eq!(file.read_line().unwrap().unwrap(), "H, World");
         remove_file(filename).unwrap();
