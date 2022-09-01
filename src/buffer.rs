@@ -38,6 +38,17 @@ impl Line {
             self.display_rows = 1;
         }
     }
+
+    pub fn render_no_wrap(&self, cursor_col_pos: usize) {
+        let (col, _row) = terminal_size().unwrap();
+        if cursor_col_pos > col as usize {
+            let left_offset = (cursor_col_pos - col as usize).min(self.value.len());
+            let right_offset = (left_offset + col as usize).min(self.value.len());
+            print!("{}\r\n", self.value[left_offset..right_offset].to_string());
+        } else {
+            print!("{}\r\n", self.value[..(col as usize).min(self.value.len())].to_string());
+        }
+    }
 }
 
 pub struct Buffer {
@@ -47,9 +58,31 @@ pub struct Buffer {
     pub cursor: Cursor,
     top_offset: usize,
     filename: String,
+    is_wrap: bool,
 }
 
 impl Buffer {
+    pub fn new(filename: &str) -> Result<Self, ()> {
+        if let Ok(file) = File::open(filename) {
+            let mut buffer: Vec<Line> = vec![];
+
+            for line in io::BufReader::new(file).lines() {
+                let line = line.expect("failed reading line");
+                buffer.push(Line::from(line));
+            }
+
+            Ok(Buffer {
+                lines: buffer,
+                cursor: Cursor::new(),
+                top_offset: 0,
+                filename: filename.to_string(),
+                is_wrap: false
+            })
+        } else {
+            Err(())
+        }
+    }
+
     pub fn buffer_row(&self) -> usize {
         // Maps the current cursor row in terminal window with the row in `self.lines`
         let cursor_row = self.cursor.row();
@@ -110,26 +143,6 @@ impl Buffer {
         let (col, _row) = terminal_size().unwrap();
 
         line_length % col as usize
-    }
-
-    pub fn new(filename: &str) -> Result<Self, ()> {
-        if let Ok(file) = File::open(filename) {
-            let mut buffer: Vec<Line> = vec![];
-
-            for line in io::BufReader::new(file).lines() {
-                let line = line.expect("failed reading line");
-                buffer.push(Line::from(line));
-            }
-
-            Ok(Buffer {
-                lines: buffer,
-                cursor: Cursor::new(),
-                top_offset: 0,
-                filename: filename.to_string(),
-            })
-        } else {
-            Err(())
-        }
     }
 
     pub fn write(&mut self, char: char) {
@@ -250,6 +263,10 @@ impl Buffer {
         Ok(())
     }
 
+    pub fn toggle_wrapping(&mut self) {
+        self.is_wrap = !self.is_wrap;
+    }
+
     pub fn render(&mut self) {
         let (_col, row) = termion::terminal_size().unwrap();
         let mut rows_to_draw: usize = self.top_offset + (row as usize - 1);
@@ -257,7 +274,11 @@ impl Buffer {
             rows_to_draw = self.lines.len();
         }
         for line in &mut self.lines[self.top_offset..rows_to_draw] {
-            line.render();
+            if self.is_wrap {
+                line.render();
+            } else {
+                line.render_no_wrap(self.cursor.col() + 1);
+            }
         }
     }
 }

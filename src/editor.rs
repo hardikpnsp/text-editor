@@ -92,6 +92,9 @@ impl Editor {
                     Event::Key(Key::Ctrl('r')) => {
                         self.cycle_buffer();
                     },
+                    Event::Key(Key::Ctrl('w')) => {
+                        self.buffers[self.buffer_index].toggle_wrapping();
+                    },
                     Event::Key(Key::Backspace) => {
                         buffer.delete();
                     }
@@ -155,9 +158,12 @@ impl Editor {
                     termion::cursor::Goto(1, 1)
                 );
                 buffer.render();
+                let (y, x) = termion::terminal_size().unwrap();
 
                 let row_col_string = &*format!(
-                    "{}:{} {}:{} {}",
+                    "{}:{} {}:{} {}:{} {}",
+                    y,
+                    x,
                     buffer.cursor.row(),
                     buffer.cursor.col(),
                     buffer.buffer_row(),
@@ -165,7 +171,6 @@ impl Editor {
                     buffer.last_cursor_row()
                 );
 
-                let (y, x) = termion::terminal_size().unwrap();
                 print!(
                     "{}{}",
                     termion::cursor::Goto(y - (row_col_string.len() as u16), x),
