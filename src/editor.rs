@@ -1,4 +1,4 @@
-use std::io::{Error, stdin, Stdin, stdout, Stdout, Write};
+use std::io::{Error, stdin, stdout, Stdout, Write};
 
 use termion::cursor::DetectCursorPos;
 use termion::event::{Event, Key};
@@ -7,12 +7,15 @@ use termion::raw::{IntoRawMode, RawTerminal};
 
 use crate::buffer::Buffer;
 
+#[derive(Default)]
 enum EditorState {
+    #[default]
     Init,
     Buffer,
     TakingFileInput
 }
 
+#[derive(Default)]
 pub struct Editor {
     buffer_index: usize,
     buffers: Vec<Buffer>,
@@ -23,17 +26,6 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new() -> Self {
-        let filename = String::new();
-        Editor {
-            buffer_index: 0,
-            buffers: vec![],
-            filename,
-            exit: false,
-            mode: EditorState::Init,
-            error_message: String::new(),
-        }
-    }
     pub fn run(&mut self) {
         let mut stdout = stdout().into_raw_mode().unwrap();
 
@@ -73,7 +65,6 @@ impl Editor {
                     Event::Key(Key::Esc) => {
                         print!("{}", termion::clear::All);
                         self.exit = true;
-                        return;
                     },
                     Event::Key(Key::Ctrl('n')) => {
                         self.mode = EditorState::TakingFileInput
@@ -121,7 +112,7 @@ impl Editor {
                 match event {
                     Event::Key(Key::Esc) => {
                         print!("{}", termion::clear::All);
-                        if self.buffers.len() > 0 {
+                        if !self.buffers.is_empty() {
                             self.mode = EditorState::Buffer;
                         } else {
                             self.mode = EditorState::Init;
@@ -221,7 +212,7 @@ impl Editor {
             self.filename = String::new();
             self.error_message = String::new();
         } else {
-            self.error_message = String::from(format!("file {} not found, enter correct path", self.filename));
+            self.error_message = format!("file {} not found, enter correct path", self.filename);
             self.filename = String::new();
         }
     }
@@ -229,7 +220,7 @@ impl Editor {
     fn drop_buffer(&mut self) {
         self.buffers.remove(self.buffer_index);
         self.cycle_buffer();
-        if self.buffers.len() == 0 {
+        if self.buffers.is_empty() {
             self.mode = EditorState::Init;
         }
     }

@@ -109,9 +109,7 @@ impl Buffer {
 
         let (col, _row) = terminal_size().unwrap();
 
-        let remainder = line_length % col as usize;
-
-        return remainder;
+        line_length % col as usize
     }
 
     pub fn new(filename: &str) -> Result<Self, ()> {
@@ -123,14 +121,14 @@ impl Buffer {
                 buffer.push(Line::from(line));
             }
 
-            return Ok(Buffer {
+            Ok(Buffer {
                 lines: buffer,
                 cursor: Cursor::new(),
                 top_offset: 0,
                 filename: filename.to_string(),
-            });
+            })
         } else {
-            return Err(());
+            Err(())
         }
     }
 
@@ -240,7 +238,7 @@ impl Buffer {
     }
 
     pub fn save(&self) -> std::io::Result<()> {
-        let file = File::create(self.filename.to_string()).expect("could not open file in write only mode");
+        let file = File::create(&self.filename).expect("could not open file in write only mode");
         let mut file = LineWriter::new(file);
 
         for line in &self.lines {
