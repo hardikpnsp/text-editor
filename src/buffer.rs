@@ -288,7 +288,7 @@ impl Buffer {
                     break;
                 }
             }
-            rows_to_draw = cur;
+            rows_to_draw = cur + 1;
         }
 
         if rows_to_draw > self.lines.len() {
