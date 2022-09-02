@@ -11,6 +11,7 @@ A terminal app for text editing using Rust
 - Ctrl + N: open new file to edit
 - Ctrl + R: to rotate between open files
 - Ctrl + S: Save current file
+- Ctrl + W: Toggle text wrapping
 - Esc: Exit current file
 - Arrow Keys: cursor movement
 - Backspace: erase character

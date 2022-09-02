@@ -181,6 +181,7 @@ impl Editor {
         print!("Ctrl + N: Ctrl + N: open new file to edit\n\r");
         print!("Ctrl + R: to rotate between open files\n\r");
         print!("Ctrl + S: Save current file\n\r");
+        print!("Ctrl + W: Toggle text wrapping\n\r");
         print!("Esc: Exit current file\n\r");
         print!("Arrow Keys: cursor movement\n\r");
         print!("Backspace: erase character\n\r");

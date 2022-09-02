@@ -94,12 +94,13 @@ impl Buffer {
         let cursor_row = self.cursor.row();
         let mut buffer_row = self.top_offset;
 
-        let mut cur = 0;
+        let mut total_cursor_rows = 0;
 
-        while cur < cursor_row && buffer_row < self.lines.len() {
-            cur += self.lines[buffer_row].display_rows(self.is_wrap);
-            if cur <= cursor_row {
-                buffer_row += 1;
+        for i in self.top_offset..self.lines.len() {
+            total_cursor_rows += self.lines[i].display_rows(self.is_wrap);
+            if total_cursor_rows > cursor_row {
+                buffer_row = i;
+                break;
             }
         }
 
@@ -108,13 +109,10 @@ impl Buffer {
 
     pub fn buffer_row_start(&self, buffer_row: usize) -> usize {
         // Finds the starting cursor row in terminal for the given row in buffer
-        let mut cursor_row = 0;
-
-        for line in self.top_offset..buffer_row {
-            cursor_row += self.lines[line].display_rows(self.is_wrap);
-        }
-
-        cursor_row
+        self.lines[self.top_offset..buffer_row]
+            .iter()
+            .map(|line| line.display_rows(self.is_wrap))
+            .sum()
     }
 
     pub fn buffer_col(&self) -> usize {
@@ -133,12 +131,10 @@ impl Buffer {
 
     pub fn last_cursor_row(&self) -> usize {
         // Calculates the last row on terminal for all the lines
-        let mut cursor_row = 0;
-        for line in &self.lines[self.top_offset..] {
-            cursor_row += line.display_rows(self.is_wrap);
-        }
-
-        cursor_row
+        self.lines[self.top_offset..]
+            .iter()
+            .map(|line| line.display_rows(self.is_wrap))
+            .sum()
     }
 
     pub fn last_cursor_col(&self, buffer_row: usize) -> usize {
