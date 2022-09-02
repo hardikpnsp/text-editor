@@ -143,8 +143,11 @@ impl Buffer {
 
     pub fn last_cursor_col(&self, buffer_row: usize) -> usize {
         // Calculates the last column for the cursor for given row
-
         let line_length = self.lines[buffer_row].value.len();
+
+        if !self.is_wrap {
+            return line_length;
+        }
 
         let (col, _row) = terminal_size().unwrap();
 
