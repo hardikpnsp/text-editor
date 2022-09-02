@@ -1,4 +1,4 @@
-use std::io::{Error, stdin, stdout, Stdout, Write};
+use std::io::{stdin, stdout, Error, Stdout, Write};
 
 use termion::cursor::DetectCursorPos;
 use termion::event::{Event, Key};
@@ -12,7 +12,7 @@ enum EditorState {
     #[default]
     Init,
     Buffer,
-    TakingFileInput
+    TakingFileInput,
 }
 
 #[derive(Default)]
@@ -44,7 +44,6 @@ impl Editor {
                 break;
             }
             self.process_input_event();
-
         }
     }
 
@@ -60,18 +59,14 @@ impl Editor {
         let event = self.read_next_event().unwrap();
 
         match self.mode {
-            EditorState::Init => {
-                match event {
-                    Event::Key(Key::Esc) => {
-                        print!("{}", termion::clear::All);
-                        self.exit = true;
-                    },
-                    Event::Key(Key::Ctrl('n')) => {
-                        self.mode = EditorState::TakingFileInput
-                    },
-                    _ => {}
+            EditorState::Init => match event {
+                Event::Key(Key::Esc) => {
+                    print!("{}", termion::clear::All);
+                    self.exit = true;
                 }
-            }
+                Event::Key(Key::Ctrl('n')) => self.mode = EditorState::TakingFileInput,
+                _ => {}
+            },
             EditorState::Buffer => {
                 let buffer = &mut self.buffers[self.buffer_index];
 
@@ -85,16 +80,14 @@ impl Editor {
                     }
                     Event::Key(Key::Ctrl('s')) => {
                         buffer.save().unwrap();
-                    },
-                    Event::Key(Key::Ctrl('n')) => {
-                        self.mode = EditorState::TakingFileInput
-                    },
+                    }
+                    Event::Key(Key::Ctrl('n')) => self.mode = EditorState::TakingFileInput,
                     Event::Key(Key::Ctrl('r')) => {
                         self.cycle_buffer();
-                    },
+                    }
                     Event::Key(Key::Ctrl('w')) => {
                         self.buffers[self.buffer_index].toggle_wrapping();
-                    },
+                    }
                     Event::Key(Key::Backspace) => {
                         buffer.delete();
                     }
@@ -111,40 +104,33 @@ impl Editor {
                     _ => {}
                 }
             }
-            EditorState::TakingFileInput => {
-                match event {
-                    Event::Key(Key::Esc) => {
-                        print!("{}", termion::clear::All);
-                        if !self.buffers.is_empty() {
-                            self.mode = EditorState::Buffer;
-                        } else {
-                            self.mode = EditorState::Init;
-                        }
-                    },
-                    Event::Key(Key::Char('\n')) => {
-                        self.open_buffer();
-                    },
-                    Event::Key(Key::Char(char)) => {
-                        self.filename.push(char);
-                    },
-                    Event::Key(Key::Backspace) => {
-                        self.filename.pop();
-                    },
-                    _ => {}
+            EditorState::TakingFileInput => match event {
+                Event::Key(Key::Esc) => {
+                    print!("{}", termion::clear::All);
+                    if !self.buffers.is_empty() {
+                        self.mode = EditorState::Buffer;
+                    } else {
+                        self.mode = EditorState::Init;
+                    }
                 }
-            }
+                Event::Key(Key::Char('\n')) => {
+                    self.open_buffer();
+                }
+                Event::Key(Key::Char(char)) => {
+                    self.filename.push(char);
+                }
+                Event::Key(Key::Backspace) => {
+                    self.filename.pop();
+                }
+                _ => {}
+            },
         }
     }
 
-    fn render(&mut self, stdout: &mut RawTerminal<Stdout>, ) {
-
+    fn render(&mut self, stdout: &mut RawTerminal<Stdout>) {
         match self.mode {
             EditorState::Init => {
-                print!(
-                    "{}{}",
-                    termion::clear::All,
-                    termion::cursor::Goto(1, 1)
-                );
+                print!("{}{}", termion::clear::All, termion::cursor::Goto(1, 1));
                 self.render_default_buffer();
             }
             EditorState::Buffer => {
@@ -152,16 +138,13 @@ impl Editor {
 
                 let (row, col) = stdout.cursor_pos().unwrap();
 
-                print!(
-                    "{}{}",
-                    termion::clear::All,
-                    termion::cursor::Goto(1, 1)
-                );
+                print!("{}{}", termion::clear::All, termion::cursor::Goto(1, 1));
                 buffer.render();
                 let (y, x) = termion::terminal_size().unwrap();
 
                 let row_col_string = &*format!(
-                    "{}:{} {}:{} {}:{} {}",
+                    "{} {}:{} {}:{} {}:{} {}",
+                    buffer.top_offset,
                     y,
                     x,
                     buffer.cursor.row(),
@@ -179,14 +162,13 @@ impl Editor {
                 print!("{}", termion::cursor::Goto(row, col));
             }
             EditorState::TakingFileInput => {
-                print!(
-                    "{}{}",
-                    termion::clear::All,
-                    termion::cursor::Goto(1, 1)
-                );
+                print!("{}{}", termion::clear::All, termion::cursor::Goto(1, 1));
                 print!("{}\r\n", self.error_message);
                 print!("Enter filename below, press Esc to go back\r\n");
-                print!("filename (relative path or absolute path): {}", self.filename);
+                print!(
+                    "filename (relative path or absolute path): {}",
+                    self.filename
+                );
             }
         }
 
@@ -205,11 +187,7 @@ impl Editor {
     }
 
     fn open_buffer(&mut self) {
-        print!(
-            "{}{}",
-            termion::clear::All,
-            termion::cursor::Goto(1, 1)
-        );
+        print!("{}{}", termion::clear::All, termion::cursor::Goto(1, 1));
         if let Ok(buffer) = Buffer::new(self.filename.as_str()) {
             self.buffers.push(buffer);
             self.buffer_index = self.buffers.len() - 1;

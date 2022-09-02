@@ -6,47 +6,53 @@ use termion::terminal_size;
 
 struct Line {
     value: String,
-    display_rows: usize,
 }
 
 impl Line {
     pub fn from(value: String) -> Self {
-        Line {
-            value,
-            display_rows: 1, // number of rows required on terminal to display the whole line with wrapping
+        Line { value }
+    }
+
+    pub fn display_rows(&self, is_wrap: bool) -> usize {
+        if !is_wrap {
+            return 1;
+        }
+
+        if self.value.len() == 0 {
+            return 1;
+        } else {
+            let (col, _row) = terminal_size().unwrap();
+            let mut div = self.value.len() / col as usize;
+            if self.value.len() % col as usize != 0 {
+                div += 1;
+            }
+            return div;
         }
     }
 
     pub fn render(&mut self) {
         // renders the content of `self.value`, can take multiple terminal rows due to wrapping
         let (col, _row) = terminal_size().unwrap();
-        if col < self.value.len() as u16 {
-            let mut display_rows = 0;
-            let mut cur = 0;
-            let step: usize = (col).into();
-            while cur + step < self.value.len() {
-                print!("{}\r\n", self.value[cur..(cur + step)].to_string());
-                cur += step;
-                display_rows += 1;
-            }
-            print!("{}\r\n", self.value[cur..].to_string());
-            display_rows += 1;
-
-            self.display_rows = display_rows;
-        } else {
-            print!("{}\r\n", self.value);
-            self.display_rows = 1;
+        for i in 0..self.display_rows(true) {
+            print!(
+                "{}\r\n",
+                self.value[(i * col as usize)..(((i + 1) * col as usize).min(self.value.len()))]
+                    .to_string()
+            );
         }
     }
 
-    pub fn render_no_wrap(&self, cursor_col_pos: usize) {
+    pub fn render_no_wrap(&mut self, cursor_col_pos: usize) {
         let (col, _row) = terminal_size().unwrap();
         if cursor_col_pos > col as usize {
             let left_offset = (cursor_col_pos - col as usize).min(self.value.len());
             let right_offset = (left_offset + col as usize).min(self.value.len());
             print!("{}\r\n", self.value[left_offset..right_offset].to_string());
         } else {
-            print!("{}\r\n", self.value[..(col as usize).min(self.value.len())].to_string());
+            print!(
+                "{}\r\n",
+                self.value[..(col as usize).min(self.value.len())].to_string()
+            );
         }
     }
 }
@@ -56,7 +62,7 @@ pub struct Buffer {
     // provides facility for editing and saving the file content
     lines: Vec<Line>,
     pub cursor: Cursor,
-    top_offset: usize,
+    pub top_offset: usize,
     filename: String,
     is_wrap: bool,
 }
@@ -76,7 +82,7 @@ impl Buffer {
                 cursor: Cursor::new(),
                 top_offset: 0,
                 filename: filename.to_string(),
-                is_wrap: false
+                is_wrap: false,
             })
         } else {
             Err(())
@@ -91,7 +97,7 @@ impl Buffer {
         let mut cur = 0;
 
         while cur < cursor_row && buffer_row < self.lines.len() {
-            cur += self.lines[buffer_row].display_rows;
+            cur += self.lines[buffer_row].display_rows(self.is_wrap);
             if cur <= cursor_row {
                 buffer_row += 1;
             }
@@ -105,7 +111,7 @@ impl Buffer {
         let mut cursor_row = 0;
 
         for line in self.top_offset..buffer_row {
-            cursor_row += self.lines[line].display_rows;
+            cursor_row += self.lines[line].display_rows(self.is_wrap);
         }
 
         cursor_row
@@ -129,7 +135,7 @@ impl Buffer {
         // Calculates the last row on terminal for all the lines
         let mut cursor_row = 0;
         for line in &self.lines[self.top_offset..] {
-            cursor_row += line.display_rows;
+            cursor_row += line.display_rows(self.is_wrap);
         }
 
         cursor_row
@@ -270,9 +276,25 @@ impl Buffer {
     pub fn render(&mut self) {
         let (_col, row) = termion::terminal_size().unwrap();
         let mut rows_to_draw: usize = self.top_offset + (row as usize - 1);
+
+        if self.is_wrap {
+            let mut cur = self.top_offset;
+            let mut console_rows = 0 as usize;
+            for i in self.top_offset..self.lines.len() {
+                console_rows += self.lines[i].display_rows(self.is_wrap);
+                if console_rows <= (row - 1) as usize {
+                    cur = i;
+                } else {
+                    break;
+                }
+            }
+            rows_to_draw = cur;
+        }
+
         if rows_to_draw > self.lines.len() {
             rows_to_draw = self.lines.len();
         }
+
         for line in &mut self.lines[self.top_offset..rows_to_draw] {
             if self.is_wrap {
                 line.render();
