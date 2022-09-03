@@ -156,7 +156,7 @@ impl Editor {
 
                 print!(
                     "{}{}",
-                    termion::cursor::Goto(y - (row_col_string.len() as u16), x),
+                    termion::cursor::Goto(y - row_col_string.len() as u16, x),
                     row_col_string
                 );
                 print!("{}", termion::cursor::Goto(row, col));

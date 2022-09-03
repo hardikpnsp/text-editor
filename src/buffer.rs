@@ -1,8 +1,8 @@
 use crate::cursor::Cursor;
+use crate::terminal::Terminal;
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, LineWriter, Write};
-use termion::terminal_size;
 
 struct Line {
     value: String,
@@ -18,40 +18,39 @@ impl Line {
             return 1;
         }
 
-        if self.value.len() == 0 {
-            return 1;
+        if self.value.is_empty() {
+            1
         } else {
-            let (col, _row) = terminal_size().unwrap();
-            let mut div = self.value.len() / col as usize;
-            if self.value.len() % col as usize != 0 {
+            let col = Terminal::cols();
+            let mut div = self.value.len() / col;
+            if self.value.len() % col != 0 {
                 div += 1;
             }
-            return div;
+            div
         }
     }
 
     pub fn render(&mut self) {
         // renders the content of `self.value`, can take multiple terminal rows due to wrapping
-        let (col, _row) = terminal_size().unwrap();
+        let col = Terminal::cols();
         for i in 0..self.display_rows(true) {
             print!(
                 "{}\r\n",
-                self.value[(i * col as usize)..(((i + 1) * col as usize).min(self.value.len()))]
-                    .to_string()
+                self.value[(i * col)..(((i + 1) * col).min(self.value.len()))].to_string()
             );
         }
     }
 
     pub fn render_no_wrap(&mut self, cursor_col_pos: usize) {
-        let (col, _row) = terminal_size().unwrap();
-        if cursor_col_pos > col as usize {
-            let left_offset = (cursor_col_pos - col as usize).min(self.value.len());
-            let right_offset = (left_offset + col as usize).min(self.value.len());
+        let col = Terminal::cols();
+        if cursor_col_pos > col {
+            let left_offset = (cursor_col_pos - col).min(self.value.len());
+            let right_offset = (left_offset + col).min(self.value.len());
             print!("{}\r\n", self.value[left_offset..right_offset].to_string());
         } else {
             print!(
                 "{}\r\n",
-                self.value[..(col as usize).min(self.value.len())].to_string()
+                self.value[..(col).min(self.value.len())].to_string()
             );
         }
     }
@@ -124,9 +123,9 @@ impl Buffer {
         let buffer_row = self.buffer_row();
         let cursor_row_offset = cursor_row - self.buffer_row_start(buffer_row);
 
-        let (col, _row) = terminal_size().unwrap();
+        let col = Terminal::cols();
 
-        ((col as usize) * cursor_row_offset) + cursor_col
+        (col * cursor_row_offset) + cursor_col
     }
 
     pub fn last_cursor_row(&self) -> usize {
@@ -145,9 +144,9 @@ impl Buffer {
             return line_length;
         }
 
-        let (col, _row) = terminal_size().unwrap();
+        let col = Terminal::cols();
 
-        line_length % col as usize
+        line_length % col
     }
 
     pub fn write(&mut self, char: char) {
@@ -232,7 +231,7 @@ impl Buffer {
         if self.cursor.row() >= self.last_cursor_row() - 1 {
             return;
         }
-        if self.cursor.row() + 2 >= termion::terminal_size().unwrap().1 as usize {
+        if self.cursor.row() + 2 >= Terminal::rows() {
             self.top_offset += 1;
         } else {
             self.cursor.down();
@@ -273,15 +272,15 @@ impl Buffer {
     }
 
     pub fn render(&mut self) {
-        let (_col, row) = termion::terminal_size().unwrap();
-        let mut rows_to_draw: usize = self.top_offset + (row as usize - 1);
+        let row = Terminal::rows();
+        let mut rows_to_draw: usize = self.top_offset + row - 1;
 
         if self.is_wrap {
             let mut cur = self.top_offset;
-            let mut console_rows = 0 as usize;
+            let mut console_rows = 0_usize;
             for i in self.top_offset..self.lines.len() {
                 console_rows += self.lines[i].display_rows(self.is_wrap);
-                if console_rows <= (row - 1) as usize {
+                if console_rows < row {
                     cur = i;
                 } else {
                     break;
@@ -318,7 +317,7 @@ mod test {
         let mut f = File::create(filename).unwrap();
         f.write_all(b", World").unwrap();
 
-        let mut buffer = Buffer::new(filename);
+        let mut buffer = Buffer::new(filename).unwrap();
         buffer.write('H');
         buffer.write('e');
         buffer.write('l');
