@@ -60,8 +60,8 @@ pub struct Buffer {
     // stores the entire file as a vector of `Line`s
     // provides facility for editing and saving the file content
     lines: Vec<Line>,
-    pub cursor: Cursor,
-    pub top_offset: usize,
+    cursor: Cursor,
+    top_offset: usize,
     filename: String,
     is_wrap: bool,
 }
@@ -86,6 +86,10 @@ impl Buffer {
         } else {
             Err(())
         }
+    }
+
+    pub fn filename(&self) -> &str {
+        self.filename.as_str()
     }
 
     pub fn buffer_row(&self) -> usize {
